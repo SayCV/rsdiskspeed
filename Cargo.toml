@@ -1,0 +1,13 @@
+[package]
+name = "rsdiskspeed"
+version = "0.1.0"
+authors = ["Xycart"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.77"
+clap = "2.33.3"
+time = "0.2.19"
+rand = "0.7.3"
