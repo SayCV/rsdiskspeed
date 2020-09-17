@@ -6,6 +6,6 @@ Disk speed test for Rust Inspired from [MonkeyTest](https://github.com/thodnev/M
 
 ```
 git clone https://github.com/SayCV/rsdiskspeed
-cd cargo
+cd rsdiskspeed
 cargo build --release
 ```
