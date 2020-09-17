@@ -3,6 +3,7 @@
 use clap::{App, Arg};
 use std::{
   fs::File,
+  fs::OpenOptions,
   io::{Read, Seek, SeekFrom, Write},
   process::exit,
 };
@@ -21,7 +22,7 @@ pub struct Benchmark {
   file: String,
   write_mb: usize,
   write_block_kb: usize,
-  read_block_b: usize,
+  read_block_kb: usize,
   write_results: Vec<f64>,
   read_results: Vec<f64>,
 }
@@ -31,13 +32,13 @@ impl Benchmark {
     file: String,
     size: usize,
     write_block_kb: usize,
-    read_block_b: usize,
+    read_block_kb: usize,
   ) -> Result<Benchmark> {
     Ok(Benchmark {
       file,
       write_mb: size,
       write_block_kb,
-      read_block_b,
+      read_block_kb,
       write_results: Vec::new(),
       read_results: Vec::new(),
     })
@@ -83,8 +84,8 @@ impl Benchmark {
     self.read_results.clear();
 
     for (i, &offset) in offsets.iter().enumerate() {
-      if show_progress && i % (self.write_block_kb * 1024 / self.read_block_b) as usize == 0 {
-        print!("\rReading: {:.2} ", 1 + (i + 1) * 100 / blocks_count);
+      if show_progress && i % (self.write_block_kb / self.read_block_kb) as usize == 0 {
+        print!("\rReading: {:.2} ", (i + 1) * 100 / blocks_count);
         std::io::stdout().flush()?;
       }
       // let mut rng = thread_rng();
@@ -118,12 +119,12 @@ impl Benchmark {
     self.write_block_kb as f64 / (1024.0 * self.write_results.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()),
     self.write_block_kb as f64 / (1024.0 * self.write_results.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()));
     result.push_str(format!("
-\nRead {} x {} B blocks in {:.4} s\nRead speed is  {:.2} MB/s
+\nRead {} x {} KB blocks in {:.4} s\nRead speed is  {:.2} MB/s
 \n  max: {:.2}, min: {:.2}\n",
-    self.read_results.len(), self.read_block_b,
+    self.read_results.len(), self.read_block_kb,
     rd_sec, self.write_mb as f64 / rd_sec,
-    self.read_block_b as f64 / (1024.0 * 1024.0 * self.read_results.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()),
-    self.read_block_b as f64 / (1024.0 * 1024.0 * self.read_results.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap())).as_str());
+    self.read_block_kb as f64 / (1024.0 * self.read_results.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()),
+    self.read_block_kb as f64 / (1024.0 * self.read_results.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap())).as_str());
 
     println!("{}", result);
     //Ok(())
@@ -131,9 +132,18 @@ impl Benchmark {
 
 }
 
+fn drop_caches() {
+  OpenOptions::new()
+      .write(true)
+      .create(false)
+      .open("/proc/sys/vm/drop_caches")
+      .and_then(|mut f| f.write(b"3"))
+      .unwrap();
+}
+
 fn main() {
-  let matches = App::new("MyApp")
-    .about("test your hard drive read-write speed")
+  let matches = App::new("rsdiskspeed")
+    .about("Test your hard drive read-write speed")
     .arg(
       Arg::with_name("file")
         .help("The file to read/write to")
@@ -148,14 +158,14 @@ fn main() {
     )
     .arg(
       Arg::with_name("write-block-size")
-        .help("The block size for writing in bytes")
+        .help("The block size for writing in kbytes")
         .default_value("1024")
         .short("w"),
     )
     .arg(
       Arg::with_name("read-block-size")
-        .help("The block size for reading in bytes")
-        .default_value("512")
+        .help("The block size for reading in kbytes")
+        .default_value("1024")
         .short("r"),
     )
     .arg(
@@ -165,7 +175,7 @@ fn main() {
     )
     .arg(
       Arg::with_name("verbose")
-        .help("show more info")
+        .help("Show progress")
         .default_value("true")
         .short("v"),
     )
@@ -179,10 +189,11 @@ fn main() {
 
   if let Ok(mut benchmark) = Benchmark::new(file, size, write_block_size, read_block_size){
     let wr_blocks = size * 1024 / write_block_size;
-    let rd_blocks = size * 1024 * 1024 / read_block_size;
+    let rd_blocks = size * 1024 / read_block_size;
     benchmark.write_test( 1024 * write_block_size, wr_blocks, verbose).unwrap();
     if verbose { println!(""); }
-    benchmark.read_test(read_block_size, rd_blocks, verbose).unwrap();
+    drop_caches();
+    benchmark.read_test( 1024 * read_block_size, rd_blocks, verbose).unwrap();
     benchmark.print_result();
     exit(0x0);
   };
