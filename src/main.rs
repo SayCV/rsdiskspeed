@@ -4,7 +4,7 @@ use clap::{App, Arg};
 use std::{
   fs::File,
   fs::OpenOptions,
-  io::{Read, Seek, SeekFrom, Write},
+  io::{ErrorKind, Read, Seek, SeekFrom, Write},
   process::exit,
 };
 
@@ -181,10 +181,12 @@ fn main() {
     )
     .get_matches();
 
+  println!("Command line: {}", std::env::args().collect::<Vec<String>>().join(" "));
+  
   let file: String = matches.value_of("file").unwrap().to_string();
-  let size: usize = matches.value_of("size").unwrap().parse().unwrap();
-  let write_block_size: usize = matches.value_of("write-block-size").unwrap().parse().unwrap();
-  let read_block_size: usize = matches.value_of("read-block-size").unwrap().parse().unwrap();
+  let size: usize = matches.value_of("size").unwrap().trim().parse().unwrap_or_else(|_| panic!("could not parse {:?} as size", matches.value_of("size")));
+  let write_block_size: usize = matches.value_of("write-block-size").unwrap().trim().parse().unwrap();
+  let read_block_size: usize = matches.value_of("read-block-size").unwrap().trim().parse().unwrap();
   let verbose: bool = matches.value_of("verbose").unwrap().parse().unwrap();
 
   if let Ok(mut benchmark) = Benchmark::new(file, size, write_block_size, read_block_size){
@@ -192,7 +194,7 @@ fn main() {
     let rd_blocks = size * 1024 / read_block_size;
     benchmark.write_test( 1024 * write_block_size, wr_blocks, verbose).unwrap();
     if verbose { println!(""); }
-    drop_caches();
+    if cfg!(target_os = "linux") {  drop_caches(); }
     benchmark.read_test( 1024 * read_block_size, rd_blocks, verbose).unwrap();
     benchmark.print_result();
     exit(0x0);
