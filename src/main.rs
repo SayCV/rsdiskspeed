@@ -142,6 +142,9 @@ fn drop_caches() {
 }
 
 fn main() {
+
+  pretty_env_logger::init();
+
   let matches = App::new("rsdiskspeed")
     .about("Test your hard drive read-write speed")
     .arg(
@@ -181,7 +184,7 @@ fn main() {
     )
     .get_matches();
 
-  println!("Command line: {}", std::env::args().collect::<Vec<String>>().join(" "));
+  log::info!("Command line: {}", std::env::args().collect::<Vec<String>>().join(" "));
   
   let file: String = matches.value_of("file").unwrap().to_string();
   let size: usize = matches.value_of("size").unwrap().trim().parse().unwrap_or_else(|_| panic!("could not parse {:?} as size", matches.value_of("size")));
@@ -197,6 +200,7 @@ fn main() {
     if cfg!(target_os = "linux") {  drop_caches(); }
     benchmark.read_test( 1024 * read_block_size, rd_blocks, verbose).unwrap();
     benchmark.print_result();
+    log::info!("Done!");
     exit(0x0);
   };
   exit(0x1);
