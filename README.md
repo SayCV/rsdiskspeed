@@ -9,3 +9,13 @@ git clone https://github.com/SayCV/rsdiskspeed
 cd rsdiskspeed
 cargo build --release
 ```
+
+## How to use
+
+```
+
+mkdir udisk
+mount /dev/sdb1 udisk
+./rsdiskspeed -f udisk/rsdspdtest
+
+```
