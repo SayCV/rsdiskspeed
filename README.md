@@ -14,6 +14,10 @@ cargo build --release
 
 ```
 
+# windows
+./rsdiskspeed -f H:/rsdspdtest
+
+# linux
 mkdir udisk
 mount /dev/sdb1 udisk
 ./rsdiskspeed -f udisk/rsdspdtest
