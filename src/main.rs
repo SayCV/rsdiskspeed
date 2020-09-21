@@ -52,11 +52,14 @@ impl Benchmark {
   ) -> Result<()> {
     let mut f = File::create(&self.file)?;
     self.write_results.clear();
+    let pb = indicatif::ProgressBar::new(100);
+    pb.set_style(indicatif::ProgressStyle::default_bar()
+        .template("Write: {wide_bar} {pos}/{len} {msg}")
+        .progress_chars("#>-"));
 
     for i in 0..blocks_count {
       if show_progress {
-        print!("\rWriting: {:.2} ", (i + 1) * 100 / blocks_count);
-        std::io::stdout().flush()?;
+        pb.set_position(((i + 1) * 100 / blocks_count) as u64);
       }
       let rng = thread_rng();
       let buff: Vec<u8> = rng.sample_iter(Standard).take(block_size).collect();
@@ -67,6 +70,7 @@ impl Benchmark {
       self.write_results.push(t.as_seconds_f64());
     }
 
+    pb.finish_with_message("done");
     drop(f);
     Ok(())
   }
@@ -82,11 +86,14 @@ impl Benchmark {
     let die_range = Uniform::new_inclusive(0, blocks_count * block_size);
     let offsets: Vec<_> = rng.sample_iter(die_range).take(blocks_count).collect();
     self.read_results.clear();
+    let pb = indicatif::ProgressBar::new(100);
+    pb.set_style(indicatif::ProgressStyle::default_bar()
+        .template("Read: {wide_bar} {pos}/{len} {msg}")
+        .progress_chars("#>-"));
 
     for (i, &offset) in offsets.iter().enumerate() {
       if show_progress && i % (self.write_block_kb / self.read_block_kb) as usize == 0 {
-        print!("\rReading: {:.2} ", (i + 1) * 100 / blocks_count);
-        std::io::stdout().flush()?;
+        pb.set_position(((i + 1) * 100 / blocks_count) as u64);
       }
       // let mut rng = thread_rng();
       // let buff: Vec<u8> = rng.sample_iter(Standard).take(block_size).collect();
@@ -105,6 +112,7 @@ impl Benchmark {
       self.read_results.push(t.as_seconds_f64());
     };
 
+    pb.finish_with_message("done");
     drop(f);
     Ok(())
   }
@@ -143,7 +151,7 @@ fn drop_caches() {
 
 fn main() {
 
-  pretty_env_logger::init();
+  pretty_env_logger::try_init_timed().unwrap();
 
   let matches = App::new("rsdiskspeed")
     .about("Test your hard drive read-write speed")
@@ -191,6 +199,8 @@ fn main() {
   let write_block_size: usize = matches.value_of("write-block-size").unwrap().trim().parse().unwrap();
   let read_block_size: usize = matches.value_of("read-block-size").unwrap().trim().parse().unwrap();
   let verbose: bool = matches.value_of("verbose").unwrap().parse().unwrap();
+
+  log::info!("Write and read file: {}, size: {}", file, size);
 
   if let Ok(mut benchmark) = Benchmark::new(file, size, write_block_size, read_block_size){
     let wr_blocks = size * 1024 / write_block_size;

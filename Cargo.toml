@@ -1,6 +1,6 @@
 [package]
 name = "rsdiskspeed"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Xycart <sssxyc@163.com>"]
 edition = "2018"
 description = "Disk speed test for Rust"
@@ -13,3 +13,4 @@ log = "0.4.11"
 pretty_env_logger = "0.4.0"
 time = "0.2.19"
 rand = "0.7.3"
+indicatif = "0.15.0"
