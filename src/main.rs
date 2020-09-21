@@ -200,7 +200,7 @@ fn main() {
   let read_block_size: usize = matches.value_of("read-block-size").unwrap().trim().parse().unwrap();
   let verbose: bool = matches.value_of("verbose").unwrap().parse().unwrap();
 
-  log::info!("Write and read file: {}, size: {}", file, size);
+  log::info!("Try write and read file: {}, size: {} MB", file, size);
 
   if let Ok(mut benchmark) = Benchmark::new(file, size, write_block_size, read_block_size){
     let wr_blocks = size * 1024 / write_block_size;
