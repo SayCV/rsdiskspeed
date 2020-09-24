@@ -62,7 +62,7 @@ impl Benchmark {
         pb.set_position(((i + 1) * 100 / blocks_count) as u64);
       }
       let rng = thread_rng();
-      let buff: Vec<u8> = rng.sample_iter(Standard).take(block_size).collect();
+      let buff: Vec<u8> = rng.sample_iter::<u8, _>(Standard).take(block_size).collect();
       let start = OffsetDateTime::now_utc();
       f.write_all(&buff[..])?;
       f.sync_all()?;
