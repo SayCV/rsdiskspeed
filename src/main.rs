@@ -195,7 +195,7 @@ fn main() {
   log::info!("Command line: {}", std::env::args().collect::<Vec<String>>().join(" "));
   
   let file: String = matches.value_of("file").unwrap().to_string();
-  let size: usize = matches.value_of("size").unwrap().trim().parse().unwrap_or_else(|_| panic!("could not parse {:?} as size", matches.value_of("size")));
+  let size: usize = matches.value_of("size").unwrap().trim().parse().unwrap_or_else(|_| {log::error!("could not parse {:?} as size", matches.value_of("size"));exit(0x1);});
   let write_block_size: usize = matches.value_of("write-block-size").unwrap().trim().parse().unwrap();
   let read_block_size: usize = matches.value_of("read-block-size").unwrap().trim().parse().unwrap();
   let verbose: bool = matches.value_of("verbose").unwrap().parse().unwrap();
@@ -205,7 +205,7 @@ fn main() {
   if let Ok(mut benchmark) = Benchmark::new(file, size, write_block_size, read_block_size){
     let wr_blocks = size * 1024 / write_block_size;
     let rd_blocks = size * 1024 / read_block_size;
-    benchmark.write_test( 1024 * write_block_size, wr_blocks, verbose).unwrap();
+    benchmark.write_test( 1024 * write_block_size, wr_blocks, verbose).unwrap_or_else(|e| {log::error!("{}", e.to_string());exit(0x1);});
     if verbose { println!(""); }
     if cfg!(target_os = "linux") {  drop_caches(); }
     benchmark.read_test( 1024 * read_block_size, rd_blocks, verbose).unwrap();
